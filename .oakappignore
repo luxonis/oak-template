@@ -1,0 +1,13 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Node.js
+# ignore node_modules, it will be reinstalled in the container
+node_modules/
+
+# VCS
+.git/
+.github/
+.gitlab/
+
