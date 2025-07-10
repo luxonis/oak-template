@@ -11,3 +11,17 @@ node_modules/
 .github/
 .gitlab/
 
+# The following files are ignored by default
+# uncomment a line if you explicitly need it
+
+# !*.oakapp
+
+# Python
+# !**/.mypy_cache/
+# !**/.ruff_cache/
+
+# IDE files
+# !**/.idea
+# !**/.vscode
+# !**/.zed
+
