@@ -6,32 +6,20 @@ from utils.snaps_producer import SnapsProducer
 from depthai_nodes.node.parsing_neural_network import ParsingNeuralNetwork
 
 
-model = "luxonis/yolov6-nano:r2-coco-512x288"
-
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device()
 
-api_key = "<your api key>" # Replace with your actual API key
-
-
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
-
-    model_description = dai.NNModelDescription(model)
-    platform = device.getPlatformAsString()
-    model_description.platform = platform
-    nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(
-            model_description,
-            apiKey=api_key,
-        )
+    platform = device.getPlatform()
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
     )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(modelDescription=model_description))
 
     input_node = pipeline.create(dai.node.Camera).build()
 
-    nn_with_parser = pipeline.create(ParsingNeuralNetwork).build(
-        input_node, nn_archive
-    )
+    nn_with_parser = pipeline.create(ParsingNeuralNetwork).build(input_node, nn_archive)
 
     visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
     visualizer.addTopic("Visualizations", nn_with_parser.out, "images")
@@ -41,7 +29,6 @@ with dai.Pipeline(device) as pipeline:
         nn_with_parser.out,
         label_map=nn_archive.getConfigV1().model.heads[0].metadata.classes,
     )
-    
 
     print("Pipeline created.")
 
