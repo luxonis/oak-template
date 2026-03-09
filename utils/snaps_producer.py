@@ -1,56 +1,55 @@
 import depthai as dai
+from depthai_nodes.message import SnapData
+
 import time
-import os
 
 
 class SnapsProducer(dai.node.HostNode):
+    """
+    Host node that evaluates snapping conditions each pipeline tick and emits
+    SnapData messages for downstream SnapsProducer.
+
+    Attributes
+    ----------
+    _conditions : dict[ConditionKey, Condition]
+        A dictionary mapping condition keys to their respective snapping conditions.
+    """
+
     def __init__(self):
         super().__init__()
+        self._last_sent = time.time()
+        self._time_interval = None
 
     def build(
         self,
-        rgb: dai.Node.Output,
+        frame: dai.Node.Output,
         detections: dai.Node.Output,
-        label_map: list,
-        confidence_threshold: float = 0.7,
-        labels: list = ["person"],
-        time_interval: float = 60.0,
-    ) -> None:
-        self.link_args(rgb, detections)
-
-        self.em = dai.EventsManager()
-        self.em.setLogResponse(True)
-
-        self.label_map = label_map
-        self.confidence_threshold = confidence_threshold
-        self.labels = labels
-        self.last_update = time.time()
-        self.time_interval = time_interval
-
+        time_interval: float,
+    ):
+        self._time_interval = time_interval
+        self.link_args(frame, detections)
         return self
 
-    def process(self, rgb: dai.Buffer, detections: dai.ImgDetections):
-        for det in detections.detections:
-            if (
-                det.confidence < self.confidence_threshold
-                and self.label_map[det.label] in self.labels
-                and time.time() > self.last_update + self.time_interval
-            ):
-                self.last_update = time.time()
-                det_xyxy = [det.xmin, det.ymin, det.xmax, det.ymax]
-                extra_data = {
-                    "model": "luxonis/yolov6-nano:r2-coco-512x288",
-                    "detection_xyxy": str(det_xyxy),
-                    "detection_label": str(det.label),
-                    "detection_label_str": self.label_map[det.label],
-                    "detection_confidence": str(det.confidence),
-                }
-                self.em.sendSnap(
-                    "rgb",
-                    rgb,
-                    [],
-                    ["demo"],
-                    extra_data,
-                )
+    def process(
+        self,
+        frame: dai.Buffer,
+        detections: dai.Buffer,
+    ) -> None:
+        assert isinstance(frame, dai.ImgFrame)
+        assert isinstance(detections, dai.ImgDetections)
 
-                print(f"Event sent: {extra_data}")
+        if len(detections.detections) == 0:
+            return
+
+        if time.time() - self._last_sent >= self._time_interval:
+            snap = SnapData(
+                snap_name="test_snap",
+                file_name=None,
+                frame=frame,
+                detections=detections,
+                tags=["test_tag"],
+                extras={"extra_key": "extra_value"},
+            )
+            self.out.send(snap)
+            print("Snap sent")
+            self._last_sent = time.time()
