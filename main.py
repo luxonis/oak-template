@@ -6,7 +6,9 @@ from depthai_nodes.node.parsing_neural_network import ParsingNeuralNetwork
 from utils.snaps_producer import SnapsProducer
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+# Assumes `DEPTHAI_HUB_API_KEY` is defined in the workspace root `.env` file.
+# Load environment variables before initializing the pipeline.
+load_dotenv(override=True)  
 
 model = "luxonis/yolov6-nano:r2-coco-512x288"
 time_interval = 10.0  # min nr of seconds between snaps uploading
@@ -23,7 +25,6 @@ with dai.Pipeline(device) as pipeline:
     nn_archive = dai.NNArchive(
         dai.getModelFromZoo(
             model_description,
-            apiKey=os.environ["DEPTHAI_HUB_API_KEY"],
         )
     )
 
@@ -41,9 +42,8 @@ with dai.Pipeline(device) as pipeline:
         detections=nn_with_parser.out,
         time_interval=time_interval
     )
-    
-    snaps_uploader = pipeline.create(SnapsUploader).build(snaps_producer.out)
 
+    snaps_uploader = pipeline.create(SnapsUploader).build(snaps_producer.out)
 
     print("Pipeline created.")
 
