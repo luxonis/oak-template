@@ -1,18 +1,20 @@
-import os
-from pathlib import Path
-
 import depthai as dai
-from utils.snaps_producer import SnapsProducer
-from depthai_nodes.node.parsing_neural_network import ParsingNeuralNetwork
+import os
 
+from depthai_nodes.node import SnapsUploader
+from depthai_nodes.node.parsing_neural_network import ParsingNeuralNetwork
+from utils.snaps_producer import SnapsProducer
+from dotenv import load_dotenv
+
+# Assumes `DEPTHAI_HUB_API_KEY` is defined in the workspace root `.env` file.
+# Load environment variables before initializing the pipeline.
+load_dotenv(override=True)  
 
 model = "luxonis/yolov6-nano:r2-coco-512x288"
+time_interval = 10.0  # min nr of seconds between snaps uploading
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device()
-
-api_key = "<your api key>" # Replace with your actual API key
-
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
@@ -23,7 +25,6 @@ with dai.Pipeline(device) as pipeline:
     nn_archive = dai.NNArchive(
         dai.getModelFromZoo(
             model_description,
-            apiKey=api_key,
         )
     )
 
@@ -37,11 +38,12 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Visualizations", nn_with_parser.out, "images")
 
     snaps_producer = pipeline.create(SnapsProducer).build(
-        nn_with_parser.passthrough,
-        nn_with_parser.out,
-        label_map=nn_archive.getConfigV1().model.heads[0].metadata.classes,
+        frame=nn_with_parser.passthrough,
+        detections=nn_with_parser.out,
+        time_interval=time_interval
     )
-    
+
+    snaps_uploader = pipeline.create(SnapsUploader).build(snaps_producer.out)
 
     print("Pipeline created.")
 
