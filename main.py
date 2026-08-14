@@ -13,7 +13,7 @@ load_dotenv(override=True)
 model = "luxonis/yolov6-nano:r2-coco-512x288"
 time_interval = 10.0  # min nr of seconds between snaps uploading
 
-visualizer = dai.RemoteConnection(httpPort=8082)
+visualizer = dai.RemoteConnection(serveFrontend=False)
 device = dai.Device()
 
 with dai.Pipeline(device) as pipeline:

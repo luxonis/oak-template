@@ -2,6 +2,11 @@ __pycache__
 .cache
 *.pyc
 .*
+!frontend/.npmrc
+
+# JavaScript build dependencies and output
+node_modules/
+frontend/dist/
 
 # Virtual environments
 .venv/
